@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Lottokone</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .lotto-form {
+            margin: 20px 0;
+        }
+
+        .lotto-form input[type="number"] {
+            width: 60px;
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .blue-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .blue-button:hover {
+            background-color: #0056b3;
+        }
+
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .lotto-row {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .row-controls {
+            margin: 20px 0;
+        }
+
+        .row-controls button {
+            margin-right: 10px;
+        }
+
+        .remove-row {
+            background-color: #dc3545;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .remove-row:hover {
+            background-color: #c82333;
+        }
+
+        .instructions {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lottokone</h1>
+    
+    <div>
+        <h2>Syötä lottorivit (1-5 riviä)</h2>
+        <p class="instructions">Voit lisätä uusia rivejä "Lisää rivi" -napilla tai poistaa rivejä "Poista"-napilla.</p>
+        <form id="lottoForm" class="lotto-form">
+            <div id="lottoRows">
+                <div class="lotto-row">
+                    <input type="number" min="1" max="40" required>
+                    <input type="number" min="1" max="40" required>
+                    <input type="number" min="1" max="40" required>
+                    <input type="number" min="1" max="40" required>
+                    <input type="number" min="1" max="40" required>
+                    <input type="number" min="1" max="40" required>
+                    <input type="number" min="1" max="40" required>
+                    <button type="button" class="remove-row" onclick="removeRow(this)">Poista</button>
+                </div>
+            </div>
+            <div class="row-controls">
+                <button type="button" class="blue-button" onclick="addRow()">Lisää rivi</button>
+                <button type="submit" class="blue-button">Tarkista kaikki</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="results">
+        <!-- Results will be displayed here -->
+    </div>
+
+    <script>
+        function addRow() {
+            const rowsContainer = document.getElementById('lottoRows');
+            const rowCount = rowsContainer.children.length;
+            
+            if (rowCount >= 5) {
+                alert('Maksimimäärä rivejä (5) on jo lisätty!');
+                return;
+            }
+
+            const newRow = document.createElement('div');
+            newRow.className = 'lotto-row';
+            newRow.innerHTML = `
+                <input type="number" min="1" max="40" required>
+                <input type="number" min="1" max="40" required>
+                <input type="number" min="1" max="40" required>
+                <input type="number" min="1" max="40" required>
+                <input type="number" min="1" max="40" required>
+                <input type="number" min="1" max="40" required>
+                <input type="number" min="1" max="40" required>
+                <button type="button" class="remove-row" onclick="removeRow(this)">Poista</button>
+            `;
+            rowsContainer.appendChild(newRow);
+        }
+
+        function removeRow(button) {
+            const rowsContainer = document.getElementById('lottoRows');
+            if (rowsContainer.children.length > 1) {
+                button.parentElement.remove();
+            } else {
+                alert('Vähintään yksi rivi täytyy olla!');
+            }
+        }
+
+        document.getElementById('lottoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rows = document.getElementsByClassName('lotto-row');
+            const allRows = [];
+            
+            for (const row of rows) {
+                const inputs = Array.from(row.querySelectorAll('input[type="number"]'));
+                const numbers = inputs.map(input => parseInt(input.value));
+                allRows.push(numbers);
+            }
+            
+            try {
+                const response = await fetch('/check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(allRows)
+                });
+                const results = await response.json();
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.style.display = 'block';
+                
+                let resultsHtml = '<h3>Tulokset:</h3>';
+                results.forEach((result, index) => {
+                    resultsHtml += `
+                        <div class="result-row">
+                            <h4>Rivi ${index + 1}:</h4>
+                            <p>Sinun numerosi: ${result.numbers}</p>
+                            <p>Arvotut numerot: ${result.drawnNumbers}</p>
+                            <p>Oikeita numeroita: ${result.matchingNumbers}</p>
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = resultsHtml;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html> 
